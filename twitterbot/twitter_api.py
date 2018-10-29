@@ -15,8 +15,11 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
-def connect_to_api(consumer_token=consumer_token, consumer_secret=consumer_secret, access_token=access_token,
+def connect_to_api(consumer_token=consumer_token,
+                   consumer_secret=consumer_secret,
+                   access_token=access_token,
                    access_token_secret=access_token_secret):
+
     auth = tweepy.OAuthHandler(consumer_token, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
 
@@ -28,13 +31,11 @@ def connect_to_api(consumer_token=consumer_token, consumer_secret=consumer_secre
     return api
 
 
-def get_followings(username):
+def get_followings_id(username):
     api = connect_to_api()
-    user = api.get_user(username)
-    return user.friends()
+    return api.friends_ids()
 
 
 if __name__ == '__main__':
     username = os.environ.get('MY_USER_NAME')
-    get_followings(username)
-
+    followings, ids = get_followings_id(username)
