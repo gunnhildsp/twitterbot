@@ -31,11 +31,14 @@ def connect_to_api(consumer_token=consumer_token,
     return api
 
 
-def get_followings_id(username):
+def get_followings(username):
     api = connect_to_api()
-    return api.friends_ids()
+    friends = []
+    for friend in tweepy.Cursor(api.friends).items():
+        friends.append(friend)
+    return api.friends_ids(), friends
 
 
 if __name__ == '__main__':
     username = os.environ.get('MY_USER_NAME')
-    followings, ids = get_followings_id(username)
+    ids, friends = get_followings(username)
