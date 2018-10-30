@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import os
 
@@ -31,14 +32,46 @@ def connect_to_api(consumer_token=consumer_token,
     return api
 
 
-def get_followings(username):
-    api = connect_to_api()
+def get_followings(api):
     friends = []
     for friend in tweepy.Cursor(api.friends).items():
         friends.append(friend)
     return api.friends_ids(), friends
 
 
+def get_most_recent_status(api, user_id):
+    # Trying to handle pinned tweets by fetching three tweets and returning the newest
+    #TODO this is also getting tweets which are replies to others 
+    try:
+        tweets = api.user_timeline(user_id, count=3)
+    except:
+        logger.info(f'No tweets for user_id {user_id}')
+        return None
+    newest_tweet = tweets[0]
+    for tweet in tweets[1:]:
+        if tweet.created_at > newest_tweet.created_at:
+            newest_tweet = tweet
+
+    return newest_tweet
+
+
+
+def unfollow_users_with_old_posts(maximum_age_days):
+    api = connect_to_api()
+    ids, friends = get_followings(api)
+    for id in ids:
+        tweet = get_most_recent_status(api, id)
+        if tweet:
+            tweet_time = tweet.created_at
+            duration = datetime.now() - tweet_time
+            if duration.days > maximum_age_days:
+                logger.info(f'Unfollowing user "{tweet.user.name}" as the newest post is {duration.days} days old')
+                api.destroy_friendship(id)
+
+
 if __name__ == '__main__':
-    username = os.environ.get('MY_USER_NAME')
-    ids, friends = get_followings(username)
+    api = connect_to_api()
+    ids, _ = get_followings(api)
+    for id in ids:
+        tweet = get_most_recent_status(api, id)
+        logger.info(f'Tweeted by {tweet.user.screen_name} at {tweet.created_at}: \n {tweet.text}')
