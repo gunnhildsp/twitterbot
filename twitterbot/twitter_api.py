@@ -65,21 +65,26 @@ def get_most_recent_status(api, user_id):
 
 def unfollow_users_with_old_posts(maximum_age_days):
     api = connect_to_api()
-    ids, friends = get_followings(api)
-    for id in ids:
-        tweet = get_most_recent_status(api, id)
-        if tweet:
+    user_ids, friends = get_followings(api)
+    for user_id in user_ids:
+        tweet = get_most_recent_status(api, user_id)
+        if not tweet:
+            logger.info(f'Unfollowing user_id {user_id} as there are no tweets on their timeline')
+            api.destroy_friendship(user_id)
+        else:
             tweet_time = tweet.created_at
             duration = datetime.now() - tweet_time
             if duration.days > maximum_age_days:
                 logger.info(f'Unfollowing user "{tweet.user.name}" as the newest post is {duration.days} days old')
-                api.destroy_friendship(id)
+                api.destroy_friendship(user_id)
 
 
 if __name__ == '__main__':
+    unfollow_users_with_old_posts(365)
+
     api = connect_to_api()
-    ids, _ = get_followings(api)
-    for id in ids:
-        tweet = get_most_recent_status(api, id)
+    user_ids, _ = get_followings(api)
+    for user_id in user_ids:
+        tweet = get_most_recent_status(api, user_id)
         if tweet:
             logger.debug(f'Tweeted by {tweet.user.screen_name} at {tweet.created_at}: \n {tweet.text}')
