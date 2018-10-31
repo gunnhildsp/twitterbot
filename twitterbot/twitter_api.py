@@ -40,20 +40,26 @@ def get_followings(api):
 
 
 def get_most_recent_status(api, user_id):
-    # Trying to handle pinned tweets by fetching three tweets and returning the newest
-    #TODO this is also getting tweets which are replies to others 
-    try:
-        tweets = api.user_timeline(user_id, count=3)
-    except:
+    # Trying to handle pinned tweets and commenting by fetching five tweets and returning the newest
+
+    tweets = api.user_timeline(user_id, count=5)
+    if not tweets:
         logger.info(f'No tweets for user_id {user_id}')
         return None
+
+    # Removing tweets that are replies to others (=comments)
+    tweets = [t for t in tweets if t.in_reply_to_status_id is None]
+    if not tweets:
+        logger.info(f'Could not find any tweets that were not comments for user_id {user_id}')
+        return None
+
+    # Find newest of remaining
     newest_tweet = tweets[0]
     for tweet in tweets[1:]:
         if tweet.created_at > newest_tweet.created_at:
             newest_tweet = tweet
 
     return newest_tweet
-
 
 
 def unfollow_users_with_old_posts(maximum_age_days):
@@ -74,4 +80,5 @@ if __name__ == '__main__':
     ids, _ = get_followings(api)
     for id in ids:
         tweet = get_most_recent_status(api, id)
-        logger.info(f'Tweeted by {tweet.user.screen_name} at {tweet.created_at}: \n {tweet.text}')
+        if tweet:
+            logger.debug(f'Tweeted by {tweet.user.screen_name} at {tweet.created_at}: \n {tweet.text}')
