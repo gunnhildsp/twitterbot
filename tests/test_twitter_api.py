@@ -1,7 +1,11 @@
 from tweepy.api import API
 from tweepy import User
 
-from twitterbot.twitter_api import connect_to_api, get_followings, get_most_recent_status
+from twitterbot.twitter_api import (
+    connect_to_api,
+    get_followings,
+    get_most_recent_status,
+)
 
 
 def test_connect_to_api():
@@ -20,6 +24,6 @@ def test_get_followings():
 
 def test_get_status():
     api = connect_to_api()
-    user_id = 3098427092
+    user_id = 3098427092  # User that has tweets
     tweet = get_most_recent_status(api, user_id)
     assert tweet is not None
