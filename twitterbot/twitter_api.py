@@ -46,17 +46,28 @@ def get_followings(api):
 
 def get_most_recent_status(api, user_id):
     # Trying to handle pinned tweets and commenting by fetching five tweets and returning the newest
+    count = 5
+    user = api.get_user(user_id)
+    has_tweets = user.statuses_count > 0
 
-    tweets = api.user_timeline(user_id, count=5)
-    if not tweets:
+    # Returning None if users does not have any tweets
+    if not has_tweets:
         logger.info(f"No tweets for user_id {user_id}")
         return None
-
     # Removing tweets that are replies to others (=comments)
-    tweets = [t for t in tweets if t.in_reply_to_status_id is None]
-    if not tweets:
+    else:
+        found = False
+        tweets = api.user_timeline(user_id, count=count)
+        while (not found) and count < 100:
+            tweets = [t for t in tweets if t.in_reply_to_status_id is None]
+            if tweets:
+                found = True
+            else:
+                count = 2 * count
+                tweets = api.user_timeline(user_id, count=count)
+    if not found:
         logger.info(
-            f"Could not find any tweets that were not comments for user_id {user_id}"
+            f"Could not find any tweets among most recent 100 that were not comments for user_id {user_id}"
         )
         return None
 
@@ -98,6 +109,6 @@ if __name__ == "__main__":
     for user_id in user_ids:
         tweet = get_most_recent_status(api, user_id)
         if tweet:
-            logger.debug(
+            logger.info(
                 f"Tweeted by {tweet.user.screen_name} at {tweet.created_at}: \n {tweet.text}"
             )
