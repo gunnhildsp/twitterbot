@@ -125,42 +125,6 @@ def format_tweets(tweets):
     return tweet_df
 
 
-def get_most_recent_status(api, user_id):
-    # Trying to handle pinned tweets and commenting by fetching five tweets and returning the newest
-    count = 5
-    user = api.get_user(user_id)
-    has_tweets = user.statuses_count > 0
-
-    # Returning None if users does not have any tweets
-    if not has_tweets:
-        logger.info(f"No tweets for user_id {user_id}")
-        return None
-    # Removing tweets that are replies to others (=comments)
-    else:
-        found = False
-        tweets = api.user_timeline(user_id, count=count)
-        while (not found) and count < 100:
-            tweets = [t for t in tweets if t.in_reply_to_status_id is None]
-            if tweets:
-                found = True
-            else:
-                count = 2 * count
-                tweets = api.user_timeline(user_id, count=count)
-    if not found:
-        logger.info(
-            f"Could not find any tweets among most recent 100 that were not comments for user_id {user_id}"
-        )
-        return None
-
-    # Find newest of remaining
-    newest_tweet = tweets[0]
-    for tweet in tweets[1:]:
-        if tweet.created_at > newest_tweet.created_at:
-            newest_tweet = tweet
-
-    return newest_tweet
-
-
 def unfollow_users_with_old_posts(maximum_age_days):
     api = connect_to_api()
     user_ids, friends = get_followings(api)
