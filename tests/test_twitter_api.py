@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import timedelta
 from unittest import mock
 
 import pandas as pd
@@ -7,9 +8,9 @@ from tweepy import User
 from twitterbot.twitter_api import (
     connect_to_api,
     get_followings,
-    get_most_recent_status,
     format_tweets,
     analyse_tweets,
+    get_recent_tweets,
 )
 
 
@@ -24,18 +25,6 @@ def test_get_followings():
     assert isinstance(ids, list)
     assert isinstance(friends[0], User)
     assert len(ids) == len(friends)
-
-
-def test_get_status():
-    api = connect_to_api()
-    user_id = 3098427092  # User that has tweets
-    tweet = get_most_recent_status(api, user_id)
-    assert tweet is not None
-
-
-def test_get_recent_tweets():
-    # TODO implement test
-    pass
 
 
 def test_format_tweets():
@@ -65,9 +54,34 @@ def test_format_tweets():
     assert tweet_df.favorite_count.iloc[0] == 1
 
 
-def test_get_most_recent_status():
-    # TODO implement test
-    pass
+def test_get_recent_status_1_tweet():
+    api = connect_to_api()
+    user_id = 25073877  # @realDonaldTrump
+    time_1_year_ago = datetime.now() - timedelta(days=365)
+    tweet = get_recent_tweets(api, user_id, time_start=time_1_year_ago, return_tweets=1)
+    assert len(tweet) == 1
+    assert tweet[0].created_at >= time_1_year_ago
+
+
+def test_get_recent_status_age_1_day():
+    api = connect_to_api()
+    user_id = 25073877  # @realDonaldTrump
+    time_1_day_ago = datetime.now() - timedelta(days=1)
+    tweet = get_recent_tweets(api, user_id, time_start=time_1_day_ago, return_tweets=1)
+    assert len(tweet) == 1
+    assert tweet[0].created_at >= time_1_day_ago
+
+
+def test_get_recent_status_many_tweets():
+    api = connect_to_api()
+    user_id = 25073877  # @realDonaldTrump
+    time_1_year_ago = datetime.now() - timedelta(days=365)
+    number_of_tweets = 50
+    tweet = get_recent_tweets(
+        api, user_id, time_start=time_1_year_ago, return_tweets=number_of_tweets
+    )
+    assert len(tweet) == number_of_tweets
+    assert tweet[0].created_at >= time_1_year_ago
 
 
 def test_analyse_tweets():
