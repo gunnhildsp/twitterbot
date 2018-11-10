@@ -2,7 +2,6 @@ from datetime import datetime
 from unittest import mock
 
 import pandas as pd
-from tweepy.api import API
 from tweepy import User
 
 from twitterbot.twitter_api import (
@@ -16,8 +15,7 @@ from twitterbot.twitter_api import (
 
 def test_connect_to_api():
     api = connect_to_api()
-    assert isinstance(api, API)
-    api.verify_credentials()
+    assert api.verify_credentials()
 
 
 def test_get_followings():
