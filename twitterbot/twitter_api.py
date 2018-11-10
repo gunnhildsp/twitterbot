@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import time
 
 from dotenv import load_dotenv, find_dotenv
 import numpy as np
@@ -165,20 +166,27 @@ def analyse_tweets(tweet_df):
     return tweet_df
 
 
+def get_tweets_with_sentiments(no_of_days, api):
+    oldest_date = datetime.datetime.now() - datetime.timedelta(days=no_of_days)
+    user_ids, _ = get_followings(api)
+    list_of_df = []
+    for user_id in user_ids:
+        tweets = get_recent_tweets(api, user_id, oldest_date)
+        tweet_df = format_tweets(tweets)
+        list_of_df.append(tweet_df)
+    tweet_df = pd.concat(list_of_df, ignore_index=True)
+    tweet_df = analyse_tweets(tweet_df)
+    return tweet_df
+
+
 if __name__ == "__main__":
     # Clean friends list
     # tweet_age_days = 365
     # unfollow_users_with_old_posts(tweet_age_days)
 
     # Get tweets during recent week
-    time = datetime.datetime.now() - datetime.timedelta(days=7)
+    # TODO add visualisation library that can plot distributions and checks
+    # Maybe create notebook with plots
+    number_of_days = 7
     api = connect_to_api()
-    user_ids, _ = get_followings(api)
-    list_of_df = []
-    for user_id in user_ids:
-        tweets = get_recent_tweets(api, user_id, time)
-        tweet_df = format_tweets(tweets)
-        list_of_df.append(tweet_df)
-    tweet_df = pd.concat(list_of_df, ignore_index=True)
-    tweets_classified = analyse_tweets(tweet_df)
-    print(tweets_classified["polarity"].max)
+    tweet_df = get_tweets_with_sentiments(number_of_days, api)

@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest import mock
 
+import pandas as pd
 from tweepy.api import API
 from tweepy import User
 
@@ -9,6 +10,7 @@ from twitterbot.twitter_api import (
     get_followings,
     get_most_recent_status,
     format_tweets,
+    analyse_tweets,
 )
 
 
@@ -42,7 +44,10 @@ def test_format_tweets():
     # Create mock tweet
     tweet = mock.Mock()
     tweet.created_at = datetime.now()
-    tweet.text = "RT @brianokken: Test &amp; Code 52: pyproject.toml : the future of Python packaging, with @brettsky https://t.co/hkHFqwKXjr"
+    tweet.text = (
+        "RT @brianokken: Test &amp; Code 52: pyproject.toml : "
+        "the future of Python packaging, with @brettsky https://t.co/hkHFqwKXjr"
+    )
     tweet.user.id = 1234
     tweet.user.screen_name = "1234_screen_name"
     tweet.favorite_count = 1
@@ -68,5 +73,19 @@ def test_get_most_recent_status():
 
 
 def test_analyse_tweets():
-    # TODO implement test
-    pass
+    test_dict = {
+        "created_at": [""],
+        "text": ["Text"],
+        "user_id": [1],
+        "user_screen_name": ["name"],
+        "favorite_count": [1],
+        "retweet_count": [15],
+    }
+    tweet_df = pd.DataFrame.from_dict(test_dict)
+    analysed_tweets = analyse_tweets(tweet_df)
+    assert (
+        analysed_tweets.subjectivity.max() <= 1
+        and analysed_tweets.subjectivity.min() >= -1
+    )
+    assert analysed_tweets.polarity.max() <= 1 and analysed_tweets.polarity.min() >= -1
+    assert all([c in analysed_tweets.columns for c in ["subjectivity", "polarity"]])
