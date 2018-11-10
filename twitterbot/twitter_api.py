@@ -1,5 +1,6 @@
 import datetime
 import logging
+from operator import attrgetter
 import os
 import time
 
@@ -57,14 +58,38 @@ def get_followings(api):
     return api.friends_ids(), friends
 
 
-def get_recent_tweets(api, user_id, time):
-    max_tweets = 50  # maximum number of tweets to get from timeline
-    tweets = api.user_timeline(user_id, count=max_tweets)
-    # Return tweets newer than time and not comments
+def get_recent_tweets(api, user_id, time_start, return_tweets, num_tweets=50):
+    """
+
+    :param api: tweepy.API object to connect
+    :param user_id: User to get tweets from
+    :param time_start: Oldest time to get tweets for
+    :param return_tweets: Number of tweets to return
+    :param num_tweets: Maximum number of tweets to fetch from api
+    :return: list of tweepy.Status objects
+    """
+
+    tweets = api.user_timeline(user_id, count=max(2 * num_tweets, 10))
+    tweets.sort(key=attrgetter("created_at"), reverse=True)
+    oldest_date = tweets[-1].created_at
+    # Only return tweets that are newer than start_time and not comments
     tweets = [
-        t for t in tweets if t.created_at > time and t.in_reply_to_status_id is None
+        t
+        for t in tweets
+        if t.created_at > time_start and t.in_reply_to_status_id is None
     ]
-    return tweets
+    # If desired number of tweets is found or not enough tweets newer than time_start
+    if (
+        len(tweets) >= return_tweets or oldest_date <= time_start
+    ):  # check age of oldest tweets
+        # find out how many tweets to return
+        length_to_return = min(len(tweets), return_tweets)
+        return tweets[0:length_to_return]
+    else:
+        # If not enough tweets returned and more tweets are available,
+        # Call function again but get more tweets from api
+        num_tweets = 2 * num_tweets
+        return get_recent_tweets(api, user_id, time_start, return_tweets, num_tweets)
 
 
 def format_tweets(tweets):
@@ -187,6 +212,19 @@ if __name__ == "__main__":
     # Get tweets during recent week
     # TODO add visualisation library that can plot distributions and checks
     # Maybe create notebook with plots
-    number_of_days = 7
+    no_of_days = 7
     api = connect_to_api()
-    tweet_df = get_tweets_with_sentiments(number_of_days, api)
+    user_ids, users = get_followings(api)
+    oldest_date = datetime.datetime.now() - datetime.timedelta(days=no_of_days)
+    count = 0
+    while count < 3:
+        for user in users:
+            logger.info(
+                f"Getting tweets for {user.name} (screen name {user.screen_name})"
+            )
+            tweets = get_recent_tweets(
+                api, user.id, oldest_date, return_tweets=1, num_tweets=15
+            )
+            if tweets:
+                count += 1
+                print([tweet.text for tweet in tweets])
