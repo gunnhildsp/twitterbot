@@ -69,7 +69,9 @@ def get_recent_tweets(api, user_id, time_start, return_tweets, num_tweets=50):
     :return: list of tweepy.Status objects
     """
 
-    tweets = api.user_timeline(user_id, count=max(2 * num_tweets, 10))
+    tweets = api.user_timeline(
+        user_id, count=max(2 * num_tweets, 10), tweet_mode="extended"
+    )
     tweets.sort(key=attrgetter("created_at"), reverse=True)
     oldest_date = tweets[-1].created_at
     # Only return tweets that are newer than start_time and not comments
@@ -107,11 +109,15 @@ def format_tweets(tweets):
         tweet_df = pd.DataFrame(columns=cols)
         df_tmp_list = []
         for tweet in tweets:
+            try:
+                text = tweet.text
+            except AttributeError:
+                text = tweet.full_text
             df_tmp = pd.DataFrame(
                 data=[
                     [
                         tweet.created_at,
-                        tweet.text,
+                        text,
                         tweet.user.id,
                         tweet.user.screen_name,
                         tweet.favorite_count,
@@ -160,7 +166,7 @@ def get_tweets_with_sentiments(no_of_days, api):
     user_ids, _ = get_followings(api)
     list_of_df = []
     for user_id in user_ids:
-        tweets = get_recent_tweets(api, user_id, oldest_date)
+        tweets = get_recent_tweets(api, user_id, oldest_date, return_tweets=20)
         tweet_df = format_tweets(tweets)
         list_of_df.append(tweet_df)
     tweet_df = pd.concat(list_of_df, ignore_index=True)
@@ -178,17 +184,5 @@ if __name__ == "__main__":
     # Maybe create notebook with plots
     no_of_days = 7
     api = connect_to_api()
-    user_ids, users = get_followings(api)
-    oldest_date = datetime.datetime.now() - datetime.timedelta(days=no_of_days)
-    count = 0
-    while count < 3:
-        for user in users:
-            logger.info(
-                f"Getting tweets for {user.name} (screen name {user.screen_name})"
-            )
-            tweets = get_recent_tweets(
-                api, user.id, oldest_date, return_tweets=1, num_tweets=15
-            )
-            if tweets:
-                count += 1
-                print([tweet.text for tweet in tweets])
+    tweet_df = get_tweets_with_sentiments(no_of_days, api)
+    print(tweet_df.text)
